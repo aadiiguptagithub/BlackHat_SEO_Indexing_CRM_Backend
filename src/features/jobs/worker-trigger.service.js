@@ -29,16 +29,22 @@ class WorkerTriggerService {
     }
 
     try {
-      // Railway GraphQL API to trigger deployment
+      // Use Railway webhook URL if available (most reliable)
+      const webhookUrl = process.env.RAILWAY_WEBHOOK_URL;
+      
+      if (webhookUrl) {
+        console.log('[WorkerTrigger] Using Railway webhook...');
+        const response = await axios.post(webhookUrl, {}, { timeout: 5000 });
+        console.log('✅ Worker triggered via Railway webhook');
+        return { triggered: true, method: 'webhook', timestamp: new Date() };
+      }
+      
+      // Fallback: Try Railway GraphQL API
+      console.log('[WorkerTrigger] Using Railway GraphQL API...');
       const response = await axios.post(
         'https://backboard.railway.app/graphql/v2',
         {
-          query: `mutation serviceInstanceRedeploy($serviceId: String!) {
-            serviceInstanceRedeploy(serviceId: $serviceId)
-          }`,
-          variables: {
-            serviceId: this.railwayServiceId
-          }
+          query: `mutation { serviceInstanceRedeploy(serviceId: "${this.railwayServiceId}") }`
         },
         {
           headers: {
@@ -50,16 +56,23 @@ class WorkerTriggerService {
       );
 
       if (response.data.errors) {
-        console.error('Railway API error:', response.data.errors);
+        console.error('[WorkerTrigger] Railway API error:', JSON.stringify(response.data.errors));
         return { triggered: false, error: response.data.errors };
       }
 
-      console.log('✅ Worker triggered successfully via Railway API');
-      return { triggered: true, timestamp: new Date() };
+      console.log('✅ Worker triggered via Railway GraphQL API');
+      return { triggered: true, method: 'graphql', timestamp: new Date() };
 
     } catch (error) {
-      console.error('❌ Failed to trigger worker:', error.message);
-      return { triggered: false, error: error.message };
+      console.error('❌ Failed to trigger worker:', error.response?.data || error.message);
+      
+      // Return success anyway - worker might already be running
+      console.log('⚠️ Continuing anyway - worker may already be active');
+      return { 
+        triggered: false, 
+        error: error.response?.data || error.message,
+        note: 'Worker may already be running or will start on next poll'
+      };
     }
   }
 
