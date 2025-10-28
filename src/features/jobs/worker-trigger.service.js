@@ -16,7 +16,7 @@ class WorkerTriggerService {
    * Check if worker trigger is configured
    */
   isConfigured() {
-    return this.enabled && this.railwayApiToken && this.railwayServiceId;
+    return !!(this.enabled && this.railwayApiToken && this.railwayServiceId);
   }
 
   /**
