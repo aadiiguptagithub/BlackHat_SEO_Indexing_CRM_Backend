@@ -30,17 +30,16 @@ class WorkerTriggerService {
 
     try {
       // Railway GraphQL API to trigger deployment
-      const query = `
-        mutation {
-          serviceInstanceRedeploy(input: {serviceId: "${this.railwayServiceId}"}) {
-            id
-          }
-        }
-      `;
-
       const response = await axios.post(
         'https://backboard.railway.app/graphql/v2',
-        { query },
+        {
+          query: `mutation serviceInstanceRedeploy($serviceId: String!) {
+            serviceInstanceRedeploy(serviceId: $serviceId)
+          }`,
+          variables: {
+            serviceId: this.railwayServiceId
+          }
+        },
         {
           headers: {
             'Authorization': `Bearer ${this.railwayApiToken}`,
