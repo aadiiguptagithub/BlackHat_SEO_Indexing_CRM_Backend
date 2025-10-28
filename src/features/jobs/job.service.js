@@ -17,9 +17,9 @@ const createJob = async (input) => {
   await Job.updateCounts(job._id);
   
   // Trigger worker if configured
-  workerTrigger.smartTrigger().catch(err => 
-    console.error('Worker trigger failed:', err)
-  );
+  console.log(`Job created with ${submissions.length} submissions. Attempting to trigger worker...`);
+  const triggerResult = await workerTrigger.smartTrigger();
+  console.log('Worker trigger result:', triggerResult);
   
   return job;
 };
@@ -57,9 +57,9 @@ const retryFailed = async (jobId, limit) => {
   
   // Trigger worker for retry
   if (result.modifiedCount > 0) {
-    workerTrigger.smartTrigger().catch(err => 
-      console.error('Worker trigger failed:', err)
-    );
+    console.log(`Retrying ${result.modifiedCount} failed submissions. Triggering worker...`);
+    const triggerResult = await workerTrigger.smartTrigger();
+    console.log('Worker trigger result:', triggerResult);
   }
   
   return result.modifiedCount;

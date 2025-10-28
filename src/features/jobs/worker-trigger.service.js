@@ -9,7 +9,6 @@ class WorkerTriggerService {
   constructor() {
     this.railwayApiToken = process.env.RAILWAY_API_TOKEN;
     this.railwayServiceId = process.env.RAILWAY_SERVICE_ID;
-    this.railwayProjectId = process.env.RAILWAY_PROJECT_ID;
     this.enabled = process.env.WORKER_TRIGGER_ENABLED === 'true';
   }
 
@@ -32,17 +31,16 @@ class WorkerTriggerService {
     try {
       // Railway GraphQL API to trigger deployment
       const query = `
-        mutation serviceInstanceRedeploy($serviceId: String!) {
-          serviceInstanceRedeploy(serviceId: $serviceId)
+        mutation {
+          serviceInstanceRedeploy(input: {serviceId: "${this.railwayServiceId}"}) {
+            id
+          }
         }
       `;
 
       const response = await axios.post(
         'https://backboard.railway.app/graphql/v2',
-        {
-          query,
-          variables: { serviceId: this.railwayServiceId }
-        },
+        { query },
         {
           headers: {
             'Authorization': `Bearer ${this.railwayApiToken}`,
@@ -57,11 +55,11 @@ class WorkerTriggerService {
         return { triggered: false, error: response.data.errors };
       }
 
-      console.log('Worker triggered successfully');
+      console.log('✅ Worker triggered successfully via Railway API');
       return { triggered: true, timestamp: new Date() };
 
     } catch (error) {
-      console.error('Failed to trigger worker:', error.message);
+      console.error('❌ Failed to trigger worker:', error.message);
       return { triggered: false, error: error.message };
     }
   }
@@ -81,10 +79,16 @@ class WorkerTriggerService {
    * Smart trigger - only trigger if tasks exist
    */
   async smartTrigger() {
+    console.log('[WorkerTrigger] Checking configuration...');
+    console.log('[WorkerTrigger] Enabled:', this.enabled);
+    console.log('[WorkerTrigger] Has API Token:', !!this.railwayApiToken);
+    console.log('[WorkerTrigger] Has Service ID:', !!this.railwayServiceId);
+    
     const hasTasks = await this.hasPendingTasks();
+    console.log('[WorkerTrigger] Pending tasks:', hasTasks);
     
     if (!hasTasks) {
-      console.log('No pending tasks, skipping worker trigger');
+      console.log('[WorkerTrigger] No pending tasks, skipping worker trigger');
       return { triggered: false, reason: 'no_tasks' };
     }
 
