@@ -5,7 +5,8 @@ const websiteSchema = new mongoose.Schema({
   host: String,
   path: String,
   labels: [String],
-  createdBy: String
+  createdBy: String,
+  isActive: { type: Boolean, default: true }
 }, { timestamps: true });
 
 websiteSchema.pre('save', function() {

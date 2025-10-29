@@ -36,4 +36,18 @@ const remove = async (req, res, next) => {
   }
 };
 
-module.exports = { bulkUpload, list, remove };
+const toggleStatus = async (req, res, next) => {
+  try {
+    const website = await Website.findById(req.params.id);
+    if (!website) return error(res, 'Website not found', 404);
+    
+    website.isActive = !website.isActive;
+    await website.save();
+    
+    success(res, { isActive: website.isActive }, 'Website status updated');
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { bulkUpload, list, remove, toggleStatus };
